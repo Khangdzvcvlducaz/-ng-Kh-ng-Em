@@ -9,14 +9,12 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600&family=Playfair+Display:ital,wght@1,600;1,700&display=swap" rel="stylesheet">
 <style>
-  /* ================= BIẾN MÀU ================= */
   :root{
     --red:#B3282D;
     --cream:#F5EBDD;
     --gold:#D4A853;
     --dark:#3E2A1E;
   }
-
   *{margin:0;padding:0;box-sizing:border-box}
   html{scroll-behavior:smooth}
   body{
@@ -25,25 +23,17 @@
     -webkit-font-smoothing:antialiased;
   }
 
-  /* ================= HERO SCROLL-DRIVEN ================= */
-  /* 420vh = quãng đường cuộn để chạy hết video.
-     Cuộn nhanh quá → tăng 500vh. Mỏi tay → giảm 350vh. */
-  .scrolly{height:420vh;position:relative}
-
+  /* ==== HERO SCROLL-DRIVEN ==== */
+  .scrolly{height:380vh;position:relative}
   .stage{
     position:sticky;top:0;
     height:100svh;min-height:600px;
-    overflow:hidden;
-    background:#E9D3B3;   /* màu khớp frame đầu — chờ video không chói */
+    overflow:hidden;background:#E9D3B3;
   }
   .stage video{
-    position:absolute;inset:0;
-    width:100%;height:100%;
-    object-fit:cover;
-    object-position:center 42%;
+    position:absolute;inset:0;width:100%;height:100%;
+    object-fit:cover;object-position:center 42%;
   }
-
-  /* Scrim đỉnh khung cho chữ nổi */
   .stage::after{
     content:"";position:absolute;inset:0 0 55% 0;pointer-events:none;
     background:linear-gradient(to bottom,
@@ -56,7 +46,6 @@
     text-align:center;z-index:2;
     transition:opacity .45s ease, transform .45s ease;
   }
-
   .eyebrow{
     font-size:11px;letter-spacing:.34em;font-weight:600;
     color:var(--gold);text-transform:uppercase;
@@ -65,8 +54,7 @@
   h1{
     font-family:'Playfair Display',serif;font-style:italic;
     font-weight:700;color:var(--cream);
-    font-size:clamp(44px,13vw,64px);line-height:1.04;
-    margin-top:10px;
+    font-size:clamp(44px,13vw,64px);line-height:1.04;margin-top:10px;
     text-shadow:0 2px 18px rgba(62,42,30,.45);
   }
 
@@ -102,7 +90,7 @@
   }
   .cta:active{transform:scale(.96)}
 
-  /* ================= MENU ================= */
+  /* ==== MENU ==== */
   .menu{padding:72px 24px 96px;text-align:center}
   .menu h2{
     font-family:'Playfair Display',serif;font-style:italic;
@@ -122,12 +110,11 @@
   .drink span{font-size:12px;color:#9a7b5f;display:block;margin-top:2px}
   .drink .price{font-weight:600;color:var(--red);font-size:17px;white-space:nowrap}
 
-  /* ================= GIẢM CHUYỂN ĐỘNG ================= */
+  /* ==== GIẢM CHUYỂN ĐỘNG ==== */
   @media (prefers-reduced-motion:reduce){
     .scrolly{height:auto}
-    .stage{height:100svh}
+    .stage{height:100svh;background:url('poster.png') center/cover no-repeat}
     .stage video{display:none}
-    .stage{background:url('poster.png') center/cover no-repeat}
     .scroll-hint{display:none}
     .cta-ov{opacity:1;transform:none;pointer-events:auto}
   }
@@ -135,10 +122,8 @@
 </head>
 <body>
 
-<!-- ============ HERO: CUỘN ĐỂ PHÁT VIDEO ============ -->
 <section class="scrolly" id="scrolly">
   <div class="stage">
-    <!-- Nếu poster là .jpg thì đổi poster="poster.png" thành poster="poster.jpg" -->
     <video id="film" muted playsinline preload="auto" poster="poster.png">
       <source src="scroll.mp4" type="video/mp4">
     </video>
@@ -157,7 +142,6 @@
   </div>
 </section>
 
-<!-- ============ MENU ============ -->
 <section class="menu" id="menu">
   <h2>Menu mùa lạnh</h2>
   <p>Coffee &amp; Singing</p>
@@ -185,55 +169,70 @@
   const hint    = document.getElementById('hint');
   const scrolly = document.getElementById('scrolly');
 
-  /* ==== NGƯỠNG OVERLAY — chỉnh 2 số này nếu trim video khác đi ====
-     0.16 = điểm nắp sắp bật (headline ẩn)  → giây ~2.2 / 14s
-     0.86 = điểm vào khúc xoáy (CTA hiện)    → giây ~12   / 14s  */
-  const HIDE_HEADLINE = 0.16;
-  const SHOW_CTA      = 0.86;
+  const HIDE_HEADLINE = 0.16;   // nắp sắp bật → headline ẩn
+  const SHOW_CTA      = 0.86;   // vào khúc xoáy → CTA hiện
+  const SEEK_STEP     = 0.045;  // tối đa ~22 lần seek/giây (thay vì 60)
+  const LERP          = 0.15;   // mượt — tăng 0.2 nếu muốn bám tay hơn
 
-  /* Người dùng bật "giảm chuyển động" → hiện poster + CTA tĩnh, không chạy video */
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches){
-    film.removeAttribute('poster');
-    return;
-  }
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-  film.pause();   // KHÔNG tự phát — cuộn chuột điều khiển
+  /* ===== 1. TẢI TOÀN BỘ VIDEO VÀO RAM (chống stall) ===== */
+  fetch('scroll.mp4')
+    .then(function(r){ if(!r.ok) throw new Error(); return r.blob(); })
+    .then(function(b){
+      film.src = URL.createObjectURL(b);   // seek từ RAM → tức thì
+      film.load();
+    })
+    .catch(function(){ /* fallback: giữ <source> gốc */ });
 
-  /* iOS unlock: chạm đầu tiên để video render được frame */
-  const unlock = () => {
-    film.play().then(() => film.pause()).catch(()=>{});
+  film.pause();   // cuộn chuột điều khiển, không tự phát
+
+  /* ===== 2. iOS unlock: 1 chạm đầu tiên để video render ===== */
+  const unlock = function(){
+    film.play().then(function(){ film.pause(); }).catch(function(){});
   };
   document.addEventListener('touchstart', unlock, { once:true });
-  document.addEventListener('click', unlock, { once:true });
+  document.addEventListener('click',      unlock, { once:true });
 
-  /* Tiến độ cuộn 0 → 1 */
-  let target = 0, current = 0;
+  /* ===== 3. Tiến độ cuộn ===== */
+  let target = 0, current = 0, lastT = -1;
 
   function measure(){
-    const total   = scrolly.offsetHeight - innerHeight;
-    const passed  = Math.min(Math.max(-scrolly.getBoundingClientRect().top, 0), total);
+    const total  = scrolly.offsetHeight - innerHeight;
+    const passed = Math.min(Math.max(-scrolly.getBoundingClientRect().top, 0), total);
     target = total > 0 ? passed / total : 0;
   }
   addEventListener('scroll', measure, { passive:true });
   addEventListener('resize', measure);
   measure();
 
-  /* Vòng lặp: video bám tiến độ cuộn (có làm mượt) */
+  /* ===== 4. Vòng lặp chính — THROTTLE SEEK ===== */
+  let headOn = true, ctaOn = false;   // cache trạng thái → không đụng DOM mỗi frame
+
   (function raf(){
-    current += (target - current) * 0.14;                 // hệ số mượt — tăng 0.2 = bám tay hơn
+    current += (target - current) * LERP;
     if (Math.abs(target - current) < 0.0005) current = target;
 
-    if (film.readyState >= 2 && film.duration > 0){
-      film.currentTime = current * (film.duration - 0.05);
+    const dur = film.duration;
+    if (dur > 0 && film.readyState >= 2){
+      const t = current * (dur - 0.1);
+      if (Math.abs(t - lastT) > SEEK_STEP){       // chỉ seek khi lệch đủ lớn
+        try { film.currentTime = t; lastT = t; } catch(e){}
+      }
     }
 
-    const headOn = current < HIDE_HEADLINE;
-    ovHead.style.opacity   = headOn ? 1 : 0;
-    ovHead.style.transform = headOn ? 'none' : 'translateY(-16px)';
-
-    const ctaOn = current > SHOW_CTA;
-    ovCTA.classList.toggle('on', ctaOn);
-
+    /* Overlay — chỉ ghi DOM khi trạng thái đổi */
+    const h = current < HIDE_HEADLINE;
+    if (h !== headOn){
+      headOn = h;
+      ovHead.style.opacity   = h ? 1 : 0;
+      ovHead.style.transform = h ? 'none' : 'translateY(-16px)';
+    }
+    const c = current > SHOW_CTA;
+    if (c !== ctaOn){
+      ctaOn = c;
+      ovCTA.classList.toggle('on', c);
+    }
     hint.style.opacity = current < 0.03 ? 1 : 0;
 
     requestAnimationFrame(raf);
