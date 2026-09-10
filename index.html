@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Đóng không em? — Coffee & Singing</title>
-<meta name="description" content="Sữa nóng mùa lạnh. Coffee & Singing — Đóng không em?">
+<title>Đông Không Em — Coffee & Singing</title>
+<meta name="description" content="Sữa nóng mùa lạnh. Coffee & Singing — Đông Không Em">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600&family=Playfair+Display:ital,wght@1,600;1,700&display=swap" rel="stylesheet">
@@ -33,35 +33,36 @@
     position:fixed;inset:0;z-index:99;
     background:var(--cream);
     display:flex;flex-direction:column;
-    align-items:center;justify-content:center;gap:22px;
-    transition:opacity .6s ease, visibility .6s;
+    align-items:center;justify-content:center;gap:18px;
+    transition:opacity .5s ease, visibility .5s;
   }
   #loader.done{opacity:0;visibility:hidden;pointer-events:none}
   .loader-logo{
     font-family:'Playfair Display',serif;font-style:italic;
-    font-weight:700;font-size:30px;color:var(--red);
+    font-weight:700;font-size:32px;color:var(--red);
     text-align:center;line-height:1.1;
   }
   .loader-sub{
     font-size:11px;letter-spacing:.3em;text-transform:uppercase;
     color:#9a7b5f;font-weight:600;
   }
-  .loader-bar{
-    width:min(220px,60vw);height:3px;border-radius:99px;
-    background:rgba(62,42,30,.12);overflow:hidden;
+  .loader-spinner{
+    width:32px;height:32px;border:3px solid rgba(179,40,45,.2);
+    border-top-color:var(--red);border-radius:50%;
+    animation:spin .8s linear infinite;
   }
-  .loader-fill{
-    height:100%;width:0%;border-radius:99px;
-    background:var(--red);
-    transition:width .25s ease;
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* ==== HERO — MOBILE: video tĩnh, DESKTOP: scroll-driven ==== */
+  .scrolly{
+    height:100vh;
+    position:relative;
   }
-  .loader-pct{
-    font-size:13px;font-weight:600;color:var(--dark);
-    font-variant-numeric:tabular-nums;
+  /* Desktop: scroll-driven như cũ */
+  @media (min-width:768px){
+    .scrolly{height:260vh}
   }
 
-  /* ==== HERO ==== */
-  .scrolly{height:260vh;position:relative}
   .stage{
     position:sticky;top:0;
     height:100svh;min-height:600px;
@@ -70,15 +71,12 @@
     transform:translate3d(0,0,0);
     -webkit-backface-visibility:hidden;
     backface-visibility:hidden;
-    -webkit-perspective:1000px;
-    perspective:1000px;
   }
   .stage video{
     position:absolute;inset:0;width:100%;height:100%;
     object-fit:cover;object-position:center 42%;
     -webkit-transform:translateZ(0);
     transform:translateZ(0);
-    will-change:transform;
   }
   .stage::after{
     content:"";position:absolute;inset:0 0 55% 0;pointer-events:none;
@@ -115,6 +113,10 @@
     transition:opacity .4s;
   }
   @keyframes bob{50%{transform:translateY(8px);opacity:.55}}
+  /* Mobile: ẩn hint scroll */
+  @media (max-width:767px){
+    .scroll-hint{display:none}
+  }
 
   .cta-ov{
     top:auto;bottom:calc(env(safe-area-inset-bottom) + 44px);
@@ -123,6 +125,10 @@
     opacity:0;transform:translateY(16px);pointer-events:none;
   }
   .cta-ov.on{opacity:1;transform:none;pointer-events:auto}
+  /* Mobile: CTA hiện luôn sau 3s */
+  @media (max-width:767px){
+    .cta-ov.mobile-show{opacity:1;transform:none;pointer-events:auto}
+  }
 
   .cta-sub{
     font-size:12px;letter-spacing:.22em;text-transform:uppercase;
@@ -307,7 +313,7 @@
 
   @media (prefers-reduced-motion:reduce){
     .scrolly{height:auto}
-    .stage{height:100svh;background:url('poster.png') center/cover no-repeat}
+    .stage{background:url('poster.png') center/cover no-repeat}
     .stage video{display:none}
     .scroll-hint{display:none}
     .cta-ov{opacity:1;transform:none;pointer-events:auto}
@@ -318,21 +324,20 @@
 <body class="loading">
 
 <div id="loader">
-  <div class="loader-logo">Đóng<br>không em?</div>
+  <div class="loader-logo">Đông<br>không em?</div>
   <div class="loader-sub">Coffee &amp; Singing</div>
-  <div class="loader-bar"><div class="loader-fill" id="loaderFill"></div></div>
-  <div class="loader-pct" id="loaderPct">0%</div>
+  <div class="loader-spinner"></div>
 </div>
 
 <section class="scrolly" id="scrolly">
   <div class="stage">
-    <video id="film" muted playsinline preload="auto" poster="poster.png">
+    <video id="film" muted playsinline preload="metadata" poster="poster.png">
       <source src="scroll.mp4" type="video/mp4">
     </video>
 
     <div class="overlay" id="ovHead">
       <p class="eyebrow">Sữa nóng mùa lạnh</p>
-      <h1>Đóng<br>không em?</h1>
+      <h1>Đông<br>không em?</h1>
     </div>
 
     <div class="scroll-hint" id="hint">Cuộn để pha chế ⌄</div>
@@ -344,42 +349,40 @@
   </div>
 </section>
 
-<!-- ==== COUNTDOWN ==== -->
 <section class="countdown">
   <div class="snow-icon">❄️</div>
-  <p class="eyebrow">Mùa đông 2025 đã bắt đầu</p>
-  <div class="countdown-num">Còn <span id="daysLeft">12</span> ngày</div>
-  <p class="countdown-tag">để cùng nhau ấm lại</p>
+  <p class="eyebrow">Quán đang ngủ đông</p>
+  <div class="countdown-num">Còn <span id="daysLeft">–</span> ngày</div>
+  <p class="countdown-tag">nữa là mở cửa mùa đông 2026 • 22.12.2026</p>
   
   <div class="flip-boxes">
     <div class="flip-box">
-      <span class="flip-num" id="countDays">12</span>
+      <span class="flip-num" id="countDays">–</span>
       <span class="flip-label">ngày</span>
     </div>
     <div class="flip-box">
-      <span class="flip-num" id="countHours">10</span>
+      <span class="flip-num" id="countHours">–</span>
       <span class="flip-label">giờ</span>
     </div>
     <div class="flip-box">
-      <span class="flip-num" id="countMins">25</span>
+      <span class="flip-num" id="countMins">–</span>
       <span class="flip-label">phút</span>
     </div>
     <div class="flip-box">
-      <span class="flip-num" id="countSecs">47</span>
+      <span class="flip-num" id="countSecs">–</span>
       <span class="flip-label">giây</span>
     </div>
   </div>
 
-  <a href="#notify" class="cta-outline">Nhận thông báo mùa sau 📬</a>
+  <a href="#location" class="cta-outline">Xem địa chỉ quán 📬</a>
 </section>
 
-<!-- ==== MENU ==== -->
 <section class="menu" id="menu">
   <h2>Menu mùa lạnh</h2>
   <p>Coffee &amp; Singing</p>
   <div class="drinks">
     <div class="drink">
-      <div><b>Sữa nóng Đóng Không Em</b><span>Signature • hạt đậu nành rang</span></div>
+      <div><b>Sữa nóng Đông Không Em</b><span>Signature • hạt đậu nành rang</span></div>
       <div class="price">45k</div>
     </div>
     <div class="drink">
@@ -393,62 +396,59 @@
   </div>
 </section>
 
-<!-- ==== VỀ CHÚNG TÔI ==== -->
 <section class="about">
   <div class="about-inner">
     <div class="about-img">
-      <img src="https://images.unsplash.com/photo-1511920170033-f8396924c348?w=600&h=450&fit=crop" alt="Không gian quán" loading="lazy">
+      <img src="https://images.unsplash.com/photo-1511920170033-f8396924c348?w=600&h=450&fit=crop&q=80" alt="Không gian quán" loading="lazy">
     </div>
     <div class="about-text">
       <p class="eyebrow">Coffee &amp; Singing</p>
       <h2>Về chúng tôi</h2>
       <p>Đông về là chúng tôi mở cửa. Không phải vì lạnh, mà vì sữa nóng chỉ ngon khi trời se se. Và người ta chỉ hát khi lòng ấm.</p>
-      <p><em>"Đóng không em?"</em> — câu hỏi mỗi tối muộn, trước khi khép cửa quán, trở thành tên gọi của chúng tôi. Một không gian nhỏ, nơi mùa đông được kéo dài thêm chút nữa bằng ly cacao nóng và những bản nhạc acoustic.</p>
+      <p><em>"Đông không em?"</em> — tên gọi của chúng tôi, một câu hỏi cho mỗi tối muộn se lạnh. Còn dòng chữ <em>"Đóng không em?"</em> in trên ly là lời nhắc nhỏ: đóng nắp lại, giữ hơi ấm thêm chút nữa trước khi rời quán.</p>
       <p>Chúng tôi chỉ mở từ đầu tháng 12 đến cuối tháng 1. Bởi vì mùa đông không nên kéo dài mãi — nó mới quý.</p>
     </div>
   </div>
 </section>
 
-<!-- ==== KỶ NIỆM ==== -->
 <section class="memories">
   <h2>Những mùa đông đã qua</h2>
   <p class="memories-subtitle">━━━━━  Kỷ niệm  ━━━━━</p>
   
   <div class="memories-scroll">
     <div class="memory-card">
-      <img src="https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400&h=533&fit=crop" alt="Mùa 2023" loading="lazy">
+      <img src="https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400&h=533&fit=crop&q=70" alt="Mùa 2023" loading="lazy">
       <p class="memory-caption">Đêm nhạc Giáng sinh 2023<br>Đông ấm đầu tiên</p>
     </div>
     <div class="memory-card">
-      <img src="https://images.unsplash.com/photo-1511192336575-5a79af67a629?w=400&h=533&fit=crop" alt="Khách hát" loading="lazy">
+      <img src="https://images.unsplash.com/photo-1511192336575-5a79af67a629?w=400&h=533&fit=crop&q=70" alt="Khách hát" loading="lazy">
       <p class="memory-caption">Open-mic mỗi thứ Sáu<br>Những giọng hát không hoàn hảo</p>
     </div>
     <div class="memory-card">
-      <img src="https://images.unsplash.com/photo-1506619216599-9d16d0903dfd?w=400&h=533&fit=crop" alt="Ly sữa nóng" loading="lazy">
+      <img src="https://images.unsplash.com/photo-1506619216599-9d16d0903dfd?w=400&h=533&fit=crop&q=70" alt="Ly sữa nóng" loading="lazy">
       <p class="memory-caption">Ly sữa nóng signature<br>5,000+ ly đã pha trong 2 mùa</p>
     </div>
     <div class="memory-card">
-      <img src="https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=400&h=533&fit=crop" alt="Tết 2024" loading="lazy">
+      <img src="https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=400&h=533&fit=crop&q=70" alt="Tết 2024" loading="lazy">
       <p class="memory-caption">Đêm cuối mùa 31/1/2024<br>Hẹn gặp lại năm sau</p>
     </div>
   </div>
 </section>
 
-<!-- ==== ĐỊA CHỈ ==== -->
 <section class="location" id="location">
   <h2>Ghé thăm chúng tôi</h2>
   
   <div class="location-grid">
     <div class="location-card">
       <h3>📍 Địa chỉ</h3>
-      <p>123 Nguyễn Huệ, Quận 1<br>TP. Hồ Chí Minh</p>
-      <a href="https://maps.google.com/?q=123+Nguyen+Hue+Q1+HCMC" target="_blank">Chỉ đường →</a>
+      <p>Trường Tiểu học Lạc Lâm<br>Ka Đô, Lạc Lâm, Lâm Đồng</p>
+      <a href="https://www.google.com/maps/search/?api=1&query=Tr%C6%B0%E1%BB%9Dng+Ti%E1%BB%83u+h%E1%BB%8Dc+L%E1%BA%A1c+L%C3%A2m+Ka+%C4%90%C3%B4+L%C3%A2m+%C4%90%E1%BB%93ng" target="_blank">Chỉ đường →</a>
     </div>
     
     <div class="location-card">
       <h3>🕒 Giờ mở cửa</h3>
       <p><strong>Thứ 2 — Chủ nhật</strong><br>14:00 – 23:00</p>
-      <p><strong>🎄 Mùa đông</strong><br>1/12 – 31/1 hàng năm</p>
+      <p><strong>🎄 Mùa đông 2026</strong><br>Mở cửa từ 22/12/2026</p>
     </div>
   </div>
 
@@ -459,11 +459,8 @@
 
 <script>
 (function(){
-  /* Fix scroll position */
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-  if (location.hash){
-    history.replaceState(null, '', location.pathname + location.search);
-  }
+  if (location.hash) history.replaceState(null, '', location.pathname + location.search);
   scrollTo(0, 0);
 
   const film = document.getElementById('film');
@@ -472,91 +469,51 @@
   const hint = document.getElementById('hint');
   const scrolly = document.getElementById('scrolly');
   const loader = document.getElementById('loader');
-  const loaderFill = document.getElementById('loaderFill');
-  const loaderPct = document.getElementById('loaderPct');
 
+  const isMobile = innerWidth < 768;
   const HIDE_HEADLINE = 0.16;
   const SHOW_CTA = 0.86;
   const SEEK_STEP = 0.05;
   const LERP = 0.15;
 
-  /* Loader */
-  let shownPct = 0, realPct = 0, loaderGone = false;
-
-  function setPct(p){
-    realPct = Math.max(realPct, Math.min(p, 100));
-  }
-
-  (function tickLoader(){
-    if (loaderGone) return;
-    if (shownPct < realPct){
-      shownPct = Math.min(shownPct + Math.max(1, (realPct - shownPct) * 0.2), realPct);
-      const v = Math.round(shownPct);
-      loaderFill.style.width = v + '%';
-      loaderPct.textContent = v + '%';
-    }
-    if (shownPct >= 100){
-      hideLoader();
-      return;
-    }
-    requestAnimationFrame(tickLoader);
-  })();
-
+  /* Loader nhanh */
   function hideLoader(){
-    if (loaderGone) return;
-    loaderGone = true;
-    loaderFill.style.width = '100%';
-    loaderPct.textContent = '100%';
     setTimeout(function(){
       loader.classList.add('done');
       document.body.classList.remove('loading');
       scrollTo(0, 0);
-      measure();
-    }, 350);
+      if (!isMobile) measure();
+    }, 600);
   }
 
-  setTimeout(function(){ setPct(100); }, 12000);
+  if (document.readyState === 'complete') hideLoader();
+  else window.addEventListener('load', hideLoader);
 
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (reduced){
-    setPct(100);
-  } else {
-    /* Load video */
-    fetch('scroll.mp4')
-      .then(function(r){
-        if (!r.ok) throw 0;
-        const total = +r.headers.get('Content-Length') || 0;
-        if (!r.body || !total){
-          setPct(90);
-          return r.blob();
-        }
-        const reader = r.body.getReader();
-        let received = 0;
-        const chunks = [];
-        return (function pump(){
-          return reader.read().then(function(res){
-            if (res.done) return new Blob(chunks, { type:'video/mp4' });
-            chunks.push(res.value);
-            received += res.value.length;
-            setPct((received / total) * 95);
-            return pump();
-          });
-        })();
-      })
-      .then(function(b){
-        film.src = URL.createObjectURL(b);
-        film.load();
-        const ready = function(){
-          setPct(100);
-          film.removeEventListener('loadeddata', ready);
-        };
-        film.addEventListener('loadeddata', ready);
-        setTimeout(function(){ setPct(100); }, 3000);
-      })
-      .catch(function(){
-        setPct(100);
-      });
 
+  /* ==== MOBILE: video tĩnh chạy 1 lần ==== */
+  if (isMobile && !reduced){
+    film.pause();
+    
+    // iOS unlock
+    const unlock = function(){
+      film.play().catch(function(){});
+      // Sau 3s hiện CTA
+      setTimeout(function(){
+        ovCTA.classList.add('mobile-show');
+      }, 3000);
+    };
+    document.addEventListener('touchstart', unlock, { once:true, passive:true });
+    document.addEventListener('click', unlock, { once:true });
+
+    // Khi video hết → pause ở frame cuối
+    film.addEventListener('ended', function(){
+      film.pause();
+      ovCTA.classList.add('mobile-show');
+    });
+  }
+  /* ==== DESKTOP: scroll-driven như cũ ==== */
+  else if (!isMobile && !reduced){
     film.pause();
 
     const unlock = function(){
@@ -564,71 +521,72 @@
     };
     document.addEventListener('touchstart', unlock, { once:true, passive:true });
     document.addEventListener('click', unlock, { once:true });
-  }
 
-  let target = 0, current = 0, lastT = -1;
+    let target = 0, current = 0, lastT = -1;
 
-  function measure(){
-    const total = scrolly.offsetHeight - innerHeight;
-    const passed = Math.min(Math.max(-scrolly.getBoundingClientRect().top, 0), total);
-    target = total > 0 ? passed / total : 0;
-  }
-  addEventListener('scroll', measure, { passive:true });
-  addEventListener('resize', measure, { passive:true });
-  measure();
+    function measure(){
+      const total = scrolly.offsetHeight - innerHeight;
+      const passed = Math.min(Math.max(-scrolly.getBoundingClientRect().top, 0), total);
+      target = total > 0 ? passed / total : 0;
+    }
+    addEventListener('scroll', measure, { passive:true });
+    addEventListener('resize', measure, { passive:true });
+    measure();
 
-  let headOn = true, ctaOn = false;
+    let headOn = true, ctaOn = false;
 
-  (function raf(){
-    current += (target - current) * LERP;
-    if (Math.abs(target - current) < 0.0005) current = target;
+    (function raf(){
+      current += (target - current) * LERP;
+      if (Math.abs(target - current) < 0.0005) current = target;
 
-    const dur = film.duration;
-    if (dur > 0 && film.readyState >= 2 && !film.seeking){
-      const t = current * (dur - 0.1);
-      const settled = Math.abs(target - current) < 0.002;
-      if (Math.abs(t - lastT) > (settled ? 0.001 : SEEK_STEP)){
-        try { film.currentTime = t; lastT = t; } catch(e){}
+      const dur = film.duration;
+      if (dur > 0 && film.readyState >= 2 && !film.seeking){
+        const t = current * (dur - 0.1);
+        const settled = Math.abs(target - current) < 0.002;
+        if (Math.abs(t - lastT) > (settled ? 0.001 : SEEK_STEP)){
+          try { film.currentTime = t; lastT = t; } catch(e){}
+        }
       }
-    }
 
-    const h = current < HIDE_HEADLINE;
-    if (h !== headOn){
-      headOn = h;
-      ovHead.style.opacity = h ? 1 : 0;
-      ovHead.style.transform = h ? 'none' : 'translateY(-16px)';
-    }
-    const c = current > SHOW_CTA;
-    if (c !== ctaOn){
-      ctaOn = c;
-      ovCTA.classList.toggle('on', c);
-    }
-    hint.style.opacity = current < 0.03 ? 1 : 0;
+      const h = current < HIDE_HEADLINE;
+      if (h !== headOn){
+        headOn = h;
+        ovHead.style.opacity = h ? 1 : 0;
+        ovHead.style.transform = h ? 'none' : 'translateY(-16px)';
+      }
+      const c = current > SHOW_CTA;
+      if (c !== ctaOn){
+        ctaOn = c;
+        ovCTA.classList.toggle('on', c);
+      }
+      hint.style.opacity = current < 0.03 ? 1 : 0;
 
-    requestAnimationFrame(raf);
-  })();
+      requestAnimationFrame(raf);
+    })();
+  }
 
-  /* ==== COUNTDOWN TIMER ==== */
-  const targetDate = new Date('2026-01-31T23:59:59'); // Ngày đóng cửa mùa này
+  /* Countdown */
+  const targetDate = new Date('2026-12-22T00:00:00');
   
   function updateCountdown(){
     const now = new Date();
     const diff = targetDate - now;
-    
+
     if (diff <= 0){
-      document.getElementById('daysLeft').textContent = '0';
+      document.querySelector('.countdown-num').textContent = 'Đã mở cửa! 🎄';
+      document.querySelector('.countdown-tag').textContent = 'Hẹn gặp bạn 14:00 – 23:00 mỗi ngày';
       document.getElementById('countDays').textContent = '0';
       document.getElementById('countHours').textContent = '0';
       document.getElementById('countMins').textContent = '0';
       document.getElementById('countSecs').textContent = '0';
       return;
     }
-    
+
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     const secs = Math.floor((diff % (1000 * 60)) / 1000);
-    
+
     document.getElementById('daysLeft').textContent = days;
     document.getElementById('countDays').textContent = days;
     document.getElementById('countHours').textContent = String(hours).padStart(2, '0');
@@ -639,11 +597,11 @@
   updateCountdown();
   setInterval(updateCountdown, 1000);
 
-  /* ==== LAZY LOAD GOOGLE MAPS ==== */
+  /* Lazy load Maps */
   const mapContainer = document.getElementById('mapContainer');
   const mapObserver = new IntersectionObserver(function(entries){
     if (entries[0].isIntersecting){
-      mapContainer.innerHTML = '<iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.4911537763647!2d106.7008!3d10.7763!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTDCsDQ2JzM0LjciTiAxMDbCsDQyJzAyLjkiRQ!5e0!3m2!1svi!2s!4v1234567890" width="100%" height="360" style="border:0;display:block" allowfullscreen="" loading="lazy"></iframe>';
+      mapContainer.innerHTML = '<iframe src="https://www.google.com/maps?q=Tr%C6%B0%E1%BB%9Dng+Ti%E1%BB%83u+h%E1%BB%8Dc+L%E1%BA%A1c+L%C3%A2m,+Ka+%C4%90%C3%B4,+L%C3%A2m+%C4%90%E1%BB%93ng&output=embed" width="100%" height="360" style="border:0;display:block" allowfullscreen="" loading="lazy"></iframe>';
       mapObserver.disconnect();
     }
   }, { rootMargin: '100px' });
