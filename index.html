@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Đóng không em? — Coffee & Singing</title>
+<meta name="description" content="Sữa nóng mùa lạnh. Coffee & Singing — Đóng không em?">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600&family=Playfair+Display:ital,wght@1,600;1,700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --red:#B3282D;        /* đỏ thương hiệu — đồng bộ chữ trên ly */
+    --cream:#F5EBDD;
+    --gold:#D4A853;
+    --dark:#3E2A1E;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:'Be Vietnam Pro',sans-serif;
+    background:var(--cream);color:var(--dark);
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ============ HERO ============ */
+  .hero{
+    position:relative;
+    height:100svh;               /* đúng chiều cao màn hình thật trên iOS */
+    min-height:600px;
+    overflow:hidden;
+    background:#E9D3B3;          /* màu nền khớp frame đầu — chờ video không chói */
+  }
+  .hero video{
+    position:absolute;inset:0;
+    width:100%;height:100%;
+    object-fit:cover;
+    object-position:center 42%;  /* canh ly hơi dịch xuống, giữ vùng text trên */
+  }
+  #v-loop{display:none}
+
+  /* Scrim nhẹ đỉnh khung — chữ nổi trên vùng bokeh */
+  .hero::after{
+    content:"";position:absolute;inset:0 0 55% 0;pointer-events:none;
+    background:linear-gradient(to bottom,
+      rgba(62,42,30,.42) 0%, rgba(62,42,30,.18) 55%, transparent 100%);
+  }
+
+  .hero-text{
+    position:absolute;top:0;left:0;right:0;
+    padding:calc(env(safe-area-inset-top) + 64px) 24px 0;
+    text-align:center;z-index:2;
+  }
+  .eyebrow{
+    font-size:11px;letter-spacing:.34em;font-weight:600;
+    color:var(--gold);text-transform:uppercase;
+    text-shadow:0 1px 8px rgba(62,42,30,.5);
+    opacity:0;animation:fadeUp .9s .4s forwards;
+  }
+  h1{
+    font-family:'Playfair Display',serif;font-style:italic;
+    font-weight:700;color:var(--cream);
+    font-size:clamp(44px,13vw,64px);line-height:1.04;
+    margin-top:10px;
+    text-shadow:0 2px 18px rgba(62,42,30,.45);
+    opacity:0;animation:fadeUp 1s .6s forwards;
+    transition:opacity .6s, transform .6s;
+  }
+  .hero-text.hide h1,
+  .hero-text.hide .eyebrow{opacity:0 !important;transform:translateY(-14px)}
+
+  /* CTA xuất hiện khi vào cảnh swirl */
+  .cta-wrap{
+    position:absolute;left:0;right:0;
+    bottom:calc(env(safe-area-inset-bottom) + 40px);
+    display:flex;flex-direction:column;align-items:center;gap:14px;
+    z-index:2;opacity:0;transform:translateY(16px);
+    transition:opacity .8s, transform .8s;pointer-events:none;
+  }
+  .cta-wrap.show{opacity:1;transform:none;pointer-events:auto}
+  .cta-sub{
+    font-size:12px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--dark);font-weight:600;
+    text-shadow:0 1px 6px rgba(255,255,255,.6);
+  }
+  .cta{
+    display:inline-block;background:var(--red);color:var(--cream);
+    text-decoration:none;font-weight:600;font-size:16px;
+    padding:16px 44px;border-radius:999px;
+    box-shadow:0 10px 30px rgba(179,40,45,.35);
+    transition:transform .2s, box-shadow .2s;
+  }
+  .cta:active{transform:scale(.96)}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+  /* ============ SECTION MENU (mẫu tối giản) ============ */
+  .menu{padding:72px 24px 96px;text-align:center}
+  .menu h2{
+    font-family:'Playfair Display',serif;font-style:italic;
+    font-size:34px;color:var(--red);margin-bottom:6px;
+  }
+  .menu p{font-size:14px;letter-spacing:.18em;text-transform:uppercase;color:#9a7b5f;margin-bottom:40px}
+  .drinks{display:grid;gap:14px;max-width:420px;margin:0 auto}
+  .drink{
+    display:flex;justify-content:space-between;align-items:center;
+    background:#fff;border-radius:18px;padding:20px 22px;
+    box-shadow:0 4px 18px rgba(62,42,30,.07);
+  }
+  .drink b{font-size:16px}
+  .drink span{font-size:12px;color:#9a7b5f;display:block;margin-top:2px}
+  .drink .price{font-weight:600;color:var(--red);font-size:17px;white-space:nowrap}
+
+  @media (prefers-reduced-motion:reduce){
+    .hero video{display:none}
+    .hero{background:url('poster.jpg') center/cover no-repeat}
+  }
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <video id="v-intro" autoplay muted playsinline preload="auto" poster="poster.jpg">
+    <source src="intro.mp4" type="video/mp4">
+  </video>
+  <video id="v-loop" muted loop playsinline preload="auto">
+    <source src="loop.mp4" type="video/mp4">
+  </video>
+
+  <div class="hero-text" id="heroText">
+    <p class="eyebrow">Sữa nóng mùa lạnh</p>
+    <h1>Đóng<br>không em?</h1>
+  </div>
+
+  <div class="cta-wrap" id="ctaWrap">
+    <span class="cta-sub">Coffee &amp; Singing • Mùa lễ hội</span>
+    <a class="cta" href="#menu">Order ngay 🎄</a>
+  </div>
+</section>
+
+<section class="menu" id="menu">
+  <h2>Menu mùa lạnh</h2>
+  <p>Coffee &amp; Singing</p>
+  <div class="drinks">
+    <div class="drink"><div><b>Sữa nóng Đóng Không Em</b><span>Signature • hạt đậu nành rang</span></div><div class="price">45k</div></div>
+    <div class="drink"><div><b>Bạc xỉu kem trứng</b><span>Ngọt béo ấm áp</span></div><div class="price">42k</div></div>
+    <div class="drink"><div><b>Cacao nướng marshmallow</b><span>Cho ngày mưa giá</span></div><div class="price">49k</div></div>
+  </div>
+</section>
+
+<script>
+  /* ==== ĐIỀU CHỈNH TIMING TẠI ĐÂY (giây, theo video intro của bạn) ==== */
+  const T = {
+    hideHeadline: 1.9,   // lid sắp bật → headline bay đi
+    showCTA:      10.8   // vào cảnh swirl → CTA hiện
+  };
+
+  const intro = document.getElementById('v-intro');
+  const loop  = document.getElementById('v-loop');
+  const text  = document.getElementById('heroText');
+  const cta   = document.getElementById('ctaWrap');
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (reduced) {
+    cta.classList.add('show');           // tĩnh: chỉ hiện CTA trên poster
+  } else {
+    let ctaShown = false;
+    intro.addEventListener('timeupdate', () => {
+      if (intro.currentTime >= T.hideHeadline) text.classList.add('hide');
+      if (intro.currentTime >= T.showCTA && !ctaShown){ cta.classList.add('show'); ctaShown = true; }
+    });
+    intro.addEventListener('ended', () => {
+      intro.style.display = 'none';
+      loop.style.display = 'block';
+      loop.play().catch(()=>{});
+    });
+    // Một số trình duyệt chặn autoplay dù muted → fallback: chạm để bật
+    intro.addEventListener('click', () => intro.play());
+  }
+</script>
+</body>
+</html>
