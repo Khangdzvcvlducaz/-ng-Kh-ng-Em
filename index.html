@@ -16,15 +16,20 @@
     --dark:#3E2A1E;
   }
   *{margin:0;padding:0;box-sizing:border-box}
-  html{scroll-behavior:smooth}
+
+  /* Smooth scroll chỉ cho desktop — tránh xung đột momentum trên mobile */
+  @media (hover:hover) and (pointer:fine){
+    html{scroll-behavior:smooth}
+  }
   body{
     font-family:'Be Vietnam Pro',sans-serif;
     background:var(--cream);color:var(--dark);
     -webkit-font-smoothing:antialiased;
+    touch-action:pan-y;
   }
 
-  /* ==== HERO SCROLL-DRIVEN ==== */
-  .scrolly{height:380vh;position:relative}
+  /* ==== HERO SCROLL-DRIVEN — 260vh vừa đủ, đỡ mỏi tay ==== */
+  .scrolly{height:260vh;position:relative}
   .stage{
     position:sticky;top:0;
     height:100svh;min-height:600px;
@@ -44,7 +49,7 @@
     position:absolute;left:0;right:0;
     padding:calc(env(safe-area-inset-top) + 64px) 24px 0;
     text-align:center;z-index:2;
-    transition:opacity .45s ease, transform .45s ease;
+    transition:opacity .4s ease, transform .4s ease;
   }
   .eyebrow{
     font-size:11px;letter-spacing:.34em;font-weight:600;
@@ -110,7 +115,6 @@
   .drink span{font-size:12px;color:#9a7b5f;display:block;margin-top:2px}
   .drink .price{font-weight:600;color:var(--red);font-size:17px;white-space:nowrap}
 
-  /* ==== GIẢM CHUYỂN ĐỘNG ==== */
   @media (prefers-reduced-motion:reduce){
     .scrolly{height:auto}
     .stage{height:100svh;background:url('poster.png') center/cover no-repeat}
@@ -171,23 +175,23 @@
 
   const HIDE_HEADLINE = 0.16;   // nắp sắp bật → headline ẩn
   const SHOW_CTA      = 0.86;   // vào khúc xoáy → CTA hiện
-  const SEEK_STEP     = 0.045;  // tối đa ~22 lần seek/giây (thay vì 60)
+  const SEEK_STEP     = 0.05;   // skip seek khi lệch nhỏ
   const LERP          = 0.15;   // mượt — tăng 0.2 nếu muốn bám tay hơn
 
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-  /* ===== 1. TẢI TOÀN BỘ VIDEO VÀO RAM (chống stall) ===== */
+  /* ===== 1. TẢI VIDEO VÀO RAM (không phụ thuộc mạng khi seek) ===== */
   fetch('scroll.mp4')
-    .then(function(r){ if(!r.ok) throw new Error(); return r.blob(); })
+    .then(function(r){ if(!r.ok) throw 0; return r.blob(); })
     .then(function(b){
-      film.src = URL.createObjectURL(b);   // seek từ RAM → tức thì
+      film.src = URL.createObjectURL(b);
       film.load();
     })
-    .catch(function(){ /* fallback: giữ <source> gốc */ });
+    .catch(function(){ /* giữ <source> gốc làm fallback */ });
 
-  film.pause();   // cuộn chuột điều khiển, không tự phát
+  film.pause();
 
-  /* ===== 2. iOS unlock: 1 chạm đầu tiên để video render ===== */
+  /* ===== 2. iOS unlock: 1 chạm đầu để video render frame ===== */
   const unlock = function(){
     film.play().then(function(){ film.pause(); }).catch(function(){});
   };
@@ -206,22 +210,26 @@
   addEventListener('resize', measure);
   measure();
 
-  /* ===== 4. Vòng lặp chính — THROTTLE SEEK ===== */
-  let headOn = true, ctaOn = false;   // cache trạng thái → không đụng DOM mỗi frame
+  /* ===== 4. Vòng lặp chính — FIX CHÍNH CHO iOS =====
+     KHÔNG BAO GIỜ seek khi iOS đang seek dở (film.seeking).
+     Seek cũ xong → frame mới rAF sẽ seek tiếp. Hết cảnh đứng hình. */
+  let headOn = true, ctaOn = false;
 
   (function raf(){
     current += (target - current) * LERP;
     if (Math.abs(target - current) < 0.0005) current = target;
 
     const dur = film.duration;
-    if (dur > 0 && film.readyState >= 2){
+    if (dur > 0 && film.readyState >= 2 && !film.seeking){
       const t = current * (dur - 0.1);
-      if (Math.abs(t - lastT) > SEEK_STEP){       // chỉ seek khi lệch đủ lớn
+      const settled = Math.abs(target - current) < 0.002;   // đã ngừng cuộn
+      // khi còn cuộn: chỉ seek nếu lệch đủ lớn; khi dừng: snap chính xác lần cuối
+      if (Math.abs(t - lastT) > (settled ? 0.001 : SEEK_STEP)){
         try { film.currentTime = t; lastT = t; } catch(e){}
       }
     }
 
-    /* Overlay — chỉ ghi DOM khi trạng thái đổi */
+    /* Overlay — chỉ đụng DOM khi trạng thái đổi */
     const h = current < HIDE_HEADLINE;
     if (h !== headOn){
       headOn = h;
