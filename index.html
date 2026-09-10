@@ -26,7 +26,42 @@
     -webkit-font-smoothing:antialiased;
     touch-action:pan-y;
   }
+  /* Khoá cuộn khi đang loading */
+  body.loading{overflow:hidden;height:100vh}
 
+  /* ==== LOADER 1-100% ==== */
+  #loader{
+    position:fixed;inset:0;z-index:99;
+    background:var(--cream);
+    display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:22px;
+    transition:opacity .6s ease, visibility .6s;
+  }
+  #loader.done{opacity:0;visibility:hidden;pointer-events:none}
+  .loader-logo{
+    font-family:'Playfair Display',serif;font-style:italic;
+    font-weight:700;font-size:30px;color:var(--red);
+    text-align:center;line-height:1.1;
+  }
+  .loader-sub{
+    font-size:11px;letter-spacing:.3em;text-transform:uppercase;
+    color:#9a7b5f;font-weight:600;
+  }
+  .loader-bar{
+    width:min(220px,60vw);height:3px;border-radius:99px;
+    background:rgba(62,42,30,.12);overflow:hidden;
+  }
+  .loader-fill{
+    height:100%;width:0%;border-radius:99px;
+    background:var(--red);
+    transition:width .25s ease;
+  }
+  .loader-pct{
+    font-size:13px;font-weight:600;color:var(--dark);
+    font-variant-numeric:tabular-nums;
+  }
+
+  /* ==== HERO SCROLL-DRIVEN ==== */
   .scrolly{height:260vh;position:relative}
   .stage{
     position:sticky;top:0;
@@ -104,6 +139,7 @@
   }
   .cta:active{transform:scale(.96)}
 
+  /* ==== MENU ==== */
   .menu{padding:72px 24px 96px;text-align:center}
   .menu h2{
     font-family:'Playfair Display',serif;font-style:italic;
@@ -132,7 +168,15 @@
   }
 </style>
 </head>
-<body>
+<body class="loading">
+
+<!-- ==== LOADER ==== -->
+<div id="loader">
+  <div class="loader-logo">Đóng<br>không em?</div>
+  <div class="loader-sub">Coffee &amp; Singing</div>
+  <div class="loader-bar"><div class="loader-fill" id="loaderFill"></div></div>
+  <div class="loader-pct" id="loaderPct">0%</div>
+</div>
 
 <section class="scrolly" id="scrolly">
   <div class="stage">
@@ -175,29 +219,115 @@
 
 <script>
 (function(){
-  const film = document.getElementById('film');
-  const ovHead = document.getElementById('ovHead');
-  const ovCTA = document.getElementById('ovCTA');
-  const hint = document.getElementById('hint');
+  /* ===== FIX 1: LUÔN MỞ TRANG Ở ĐẦU =====
+     - Tắt khôi phục vị trí cuộn của trình duyệt
+     - Xoá #menu khỏi URL để không tự nhảy xuống cuối */
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  if (location.hash){
+    history.replaceState(null, '', location.pathname + location.search);
+  }
+  scrollTo(0, 0);
+
+  const film    = document.getElementById('film');
+  const ovHead  = document.getElementById('ovHead');
+  const ovCTA   = document.getElementById('ovCTA');
+  const hint    = document.getElementById('hint');
   const scrolly = document.getElementById('scrolly');
+  const loader     = document.getElementById('loader');
+  const loaderFill = document.getElementById('loaderFill');
+  const loaderPct  = document.getElementById('loaderPct');
 
   const HIDE_HEADLINE = 0.16;
-  const SHOW_CTA = 0.86;
-  const SEEK_STEP = 0.05;
-  const LERP = 0.15;
+  const SHOW_CTA      = 0.86;
+  const SEEK_STEP     = 0.05;
+  const LERP          = 0.15;
 
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  /* ===== FIX 2: LOADER 1-100% ===== */
+  let shownPct = 0, realPct = 0, loaderGone = false;
 
+  function setPct(p){
+    realPct = Math.max(realPct, Math.min(p, 100));
+  }
+
+  // % hiển thị tăng mượt, không giật lùi
+  (function tickLoader(){
+    if (loaderGone) return;
+    if (shownPct < realPct){
+      shownPct = Math.min(shownPct + Math.max(1, (realPct - shownPct) * 0.2), realPct);
+      const v = Math.round(shownPct);
+      loaderFill.style.width = v + '%';
+      loaderPct.textContent = v + '%';
+    }
+    if (shownPct >= 100){
+      hideLoader();
+      return;
+    }
+    requestAnimationFrame(tickLoader);
+  })();
+
+  function hideLoader(){
+    if (loaderGone) return;
+    loaderGone = true;
+    loaderFill.style.width = '100%';
+    loaderPct.textContent = '100%';
+    setTimeout(function(){
+      loader.classList.add('done');
+      document.body.classList.remove('loading');
+      scrollTo(0, 0);            // đảm bảo vẫn ở đầu trang sau khi mở khoá cuộn
+      measure();
+    }, 350);
+  }
+
+  // Dự phòng: nếu mạng chậm/lỗi, tối đa 12s vẫn vào được trang
+  setTimeout(function(){ setPct(100); }, 12000);
+
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduced){
+    setPct(100);
+    return;
+  }
+
+  /* ===== Tải video vào RAM + báo tiến độ thật ===== */
   fetch('scroll.mp4')
-    .then(function(r){ if(!r.ok) throw 0; return r.blob(); })
+    .then(function(r){
+      if (!r.ok) throw 0;
+      const total = +r.headers.get('Content-Length') || 0;
+      if (!r.body || !total){
+        // Không đọc được tiến độ → giả lập tới 90%, xong blob thì 100%
+        setPct(90);
+        return r.blob();
+      }
+      const reader = r.body.getReader();
+      let received = 0;
+      const chunks = [];
+      return (function pump(){
+        return reader.read().then(function(res){
+          if (res.done) return new Blob(chunks, { type:'video/mp4' });
+          chunks.push(res.value);
+          received += res.value.length;
+          setPct((received / total) * 95);   // video chiếm 95% thanh load
+          return pump();
+        });
+      })();
+    })
     .then(function(b){
       film.src = URL.createObjectURL(b);
       film.load();
+      // Đợi video sẵn sàng render frame rồi mới 100%
+      const ready = function(){
+        setPct(100);
+        film.removeEventListener('loadeddata', ready);
+      };
+      film.addEventListener('loadeddata', ready);
+      setTimeout(function(){ setPct(100); }, 3000); // dự phòng
     })
-    .catch(function(){});
+    .catch(function(){
+      setPct(100); // lỗi mạng → vẫn vào trang, dùng <source> gốc
+    });
 
   film.pause();
 
+  /* iOS unlock */
   const unlock = function(){
     film.play().then(function(){ film.pause(); }).catch(function(){});
   };
@@ -207,7 +337,7 @@
   let target = 0, current = 0, lastT = -1;
 
   function measure(){
-    const total = scrolly.offsetHeight - innerHeight;
+    const total  = scrolly.offsetHeight - innerHeight;
     const passed = Math.min(Math.max(-scrolly.getBoundingClientRect().top, 0), total);
     target = total > 0 ? passed / total : 0;
   }
@@ -233,7 +363,7 @@
     const h = current < HIDE_HEADLINE;
     if (h !== headOn){
       headOn = h;
-      ovHead.style.opacity = h ? 1 : 0;
+      ovHead.style.opacity   = h ? 1 : 0;
       ovHead.style.transform = h ? 'none' : 'translateY(-16px)';
     }
     const c = current > SHOW_CTA;
