@@ -459,8 +459,11 @@
 
 <script>
 (function(){
+  /* Fix scroll position */
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-  if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+  if (location.hash){
+    history.replaceState(null, '', location.pathname + location.search);
+  }
   scrollTo(0, 0);
 
   const film = document.getElementById('film');
@@ -469,116 +472,181 @@
   const hint = document.getElementById('hint');
   const scrolly = document.getElementById('scrolly');
   const loader = document.getElementById('loader');
+  const loaderFill = document.getElementById('loaderFill');
+  const loaderPct = document.getElementById('loaderPct');
 
-  const isMobile = innerWidth < 768;
   const HIDE_HEADLINE = 0.16;
   const SHOW_CTA = 0.86;
   const SEEK_STEP = 0.05;
   const LERP = 0.15;
 
-  /* Loader nhanh */
+  /* Loader */
+  let shownPct = 0, realPct = 0, loaderGone = false;
+
+  function setPct(p){
+    realPct = Math.max(realPct, Math.min(p, 100));
+  }
+
+  (function tickLoader(){
+    if (loaderGone) return;
+    if (shownPct < realPct){
+      shownPct = Math.min(shownPct + Math.max(1, (realPct - shownPct) * 0.2), realPct);
+      const v = Math.round(shownPct);
+      loaderFill.style.width = v + '%';
+      loaderPct.textContent = v + '%';
+    }
+    if (shownPct >= 100){
+      hideLoader();
+      return;
+    }
+    requestAnimationFrame(tickLoader);
+  })();
+
   function hideLoader(){
+    if (loaderGone) return;
+    loaderGone = true;
+    loaderFill.style.width = '100%';
+    loaderPct.textContent = '100%';
     setTimeout(function(){
       loader.classList.add('done');
       document.body.classList.remove('loading');
       scrollTo(0, 0);
-      if (!isMobile) measure();
-    }, 600);
+      measure();
+    }, 350);
   }
 
-  if (document.readyState === 'complete') hideLoader();
-  else window.addEventListener('load', hideLoader);
+  setTimeout(function(){ setPct(100); }, 12000);
+
+  /* ============================================================
+     FIX CHÍNH: iOS không vẽ frame của video PAUSE cho tới khi
+     từng play() 1 lần. Vì video đã muted → được phép tự play
+     không cần chạm → play/pause ngay khi video sẵn sàng.
+     ============================================================ */
+  let unlocked = false;
+
+  function tryPaintFirstFrame(){
+    if (unlocked) return;
+    const p = film.play();
+    if (p && p.then){
+      p.then(function(){
+        film.pause();
+        try { film.currentTime = 0.001; } catch(e){}
+        unlocked = true;
+      }).catch(function(){
+        /* Low Power Mode chặn autoplay → chờ người dùng chạm */
+      });
+    }
+  }
+
+  /* Fallback: chạm bất kỳ đâu → thử vẽ lại (giữ listener tới khi thành công) */
+  function unlock(){ tryPaintFirstFrame(); }
+  document.addEventListener('touchstart', unlock, { passive:true });
+  document.addEventListener('click', unlock);
 
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  /* ==== MOBILE: video tĩnh chạy 1 lần ==== */
-  if (isMobile && !reduced){
-    film.pause();
-    
-    // iOS unlock
-    const unlock = function(){
-      film.play().catch(function(){});
-      // Sau 3s hiện CTA
-      setTimeout(function(){
-        ovCTA.classList.add('mobile-show');
-      }, 3000);
-    };
-    document.addEventListener('touchstart', unlock, { once:true, passive:true });
-    document.addEventListener('click', unlock, { once:true });
-
-    // Khi video hết → pause ở frame cuối
-    film.addEventListener('ended', function(){
-      film.pause();
-      ovCTA.classList.add('mobile-show');
-    });
-  }
-  /* ==== DESKTOP: scroll-driven như cũ ==== */
-  else if (!isMobile && !reduced){
-    film.pause();
-
-    const unlock = function(){
-      film.play().then(function(){ film.pause(); }).catch(function(){});
-    };
-    document.addEventListener('touchstart', unlock, { once:true, passive:true });
-    document.addEventListener('click', unlock, { once:true });
-
-    let target = 0, current = 0, lastT = -1;
-
-    function measure(){
-      const total = scrolly.offsetHeight - innerHeight;
-      const passed = Math.min(Math.max(-scrolly.getBoundingClientRect().top, 0), total);
-      target = total > 0 ? passed / total : 0;
-    }
-    addEventListener('scroll', measure, { passive:true });
-    addEventListener('resize', measure, { passive:true });
-    measure();
-
-    let headOn = true, ctaOn = false;
-
-    (function raf(){
-      current += (target - current) * LERP;
-      if (Math.abs(target - current) < 0.0005) current = target;
-
-      const dur = film.duration;
-      if (dur > 0 && film.readyState >= 2 && !film.seeking){
-        const t = current * (dur - 0.1);
-        const settled = Math.abs(target - current) < 0.002;
-        if (Math.abs(t - lastT) > (settled ? 0.001 : SEEK_STEP)){
-          try { film.currentTime = t; lastT = t; } catch(e){}
+  if (reduced){
+    setPct(100);
+  } else {
+    /* Load video vào RAM + báo tiến độ */
+    fetch('scroll.mp4')
+      .then(function(r){
+        if (!r.ok) throw 0;
+        const total = +r.headers.get('Content-Length') || 0;
+        if (!r.body || !total){
+          setPct(90);
+          return r.blob();
         }
-      }
+        const reader = r.body.getReader();
+        let received = 0;
+        const chunks = [];
+        return (function pump(){
+          return reader.read().then(function(res){
+            if (res.done) return new Blob(chunks, { type:'video/mp4' });
+            chunks.push(res.value);
+            received += res.value.length;
+            setPct((received / total) * 95);
+            return pump();
+          });
+        })();
+      })
+      .then(function(b){
+        film.src = URL.createObjectURL(b);
+        film.load();
+        const ready = function(){
+          setPct(100);
+          film.removeEventListener('loadeddata', ready);
+          tryPaintFirstFrame();   /* ★ Vẽ frame đầu NGAY, không cần vuốt */
+        };
+        film.addEventListener('loadeddata', ready);
+        setTimeout(function(){ setPct(100); }, 3000);
+      })
+      .catch(function(){
+        setPct(100);
+      });
 
-      const h = current < HIDE_HEADLINE;
-      if (h !== headOn){
-        headOn = h;
-        ovHead.style.opacity = h ? 1 : 0;
-        ovHead.style.transform = h ? 'none' : 'translateY(-16px)';
-      }
-      const c = current > SHOW_CTA;
-      if (c !== ctaOn){
-        ctaOn = c;
-        ovCTA.classList.toggle('on', c);
-      }
-      hint.style.opacity = current < 0.03 ? 1 : 0;
-
-      requestAnimationFrame(raf);
-    })();
+    film.pause();
   }
 
-  /* Countdown */
+  let target = 0, current = 0, lastT = -1;
+
+  function measure(){
+    const total = scrolly.offsetHeight - innerHeight;
+    const passed = Math.min(Math.max(-scrolly.getBoundingClientRect().top, 0), total);
+    target = total > 0 ? passed / total : 0;
+  }
+  addEventListener('scroll', measure, { passive:true });
+  addEventListener('resize', measure, { passive:true });
+  measure();
+
+  let headOn = true, ctaOn = false;
+
+  (function raf(){
+    current += (target - current) * LERP;
+    if (Math.abs(target - current) < 0.0005) current = target;
+
+    const dur = film.duration;
+    if (dur > 0 && film.readyState >= 2 && !film.seeking){
+      const t = current * (dur - 0.1);
+      const settled = Math.abs(target - current) < 0.002;
+      if (Math.abs(t - lastT) > (settled ? 0.001 : SEEK_STEP)){
+        try { film.currentTime = t; lastT = t; } catch(e){}
+      }
+    }
+
+    const h = current < HIDE_HEADLINE;
+    if (h !== headOn){
+      headOn = h;
+      ovHead.style.opacity = h ? 1 : 0;
+      ovHead.style.transform = h ? 'none' : 'translateY(-16px)';
+    }
+    const c = current > SHOW_CTA;
+    if (c !== ctaOn){
+      ctaOn = c;
+      ovCTA.classList.toggle('on', c);
+    }
+    hint.style.opacity = current < 0.03 ? 1 : 0;
+
+    requestAnimationFrame(raf);
+  })();
+
+  /* ==== COUNTDOWN 22/12/2026 ==== */
   const targetDate = new Date('2026-12-22T00:00:00');
-  
+  const countdownNum = document.querySelector('.countdown-num');
+  const countdownTag = document.querySelector('.countdown-tag');
+  let timerId = null;
+
   function updateCountdown(){
     const now = new Date();
     const diff = targetDate - now;
 
     if (diff <= 0){
-      document.querySelector('.countdown-num').textContent = 'Đã mở cửa! 🎄';
-      document.querySelector('.countdown-tag').textContent = 'Hẹn gặp bạn 14:00 – 23:00 mỗi ngày';
+      countdownNum.textContent = 'Đã mở cửa! 🎄';
+      countdownTag.textContent = 'Hẹn gặp bạn 14:00 – 23:00 mỗi ngày';
       document.getElementById('countDays').textContent = '0';
       document.getElementById('countHours').textContent = '0';
       document.getElementById('countMins').textContent = '0';
       document.getElementById('countSecs').textContent = '0';
+      if (timerId) clearInterval(timerId);
       return;
     }
 
@@ -593,11 +661,11 @@
     document.getElementById('countMins').textContent = String(mins).padStart(2, '0');
     document.getElementById('countSecs').textContent = String(secs).padStart(2, '0');
   }
-  
-  updateCountdown();
-  setInterval(updateCountdown, 1000);
 
-  /* Lazy load Maps */
+  updateCountdown();
+  timerId = setInterval(updateCountdown, 1000);
+
+  /* ==== LAZY LOAD MAP Lạc Lâm ==== */
   const mapContainer = document.getElementById('mapContainer');
   const mapObserver = new IntersectionObserver(function(entries){
     if (entries[0].isIntersecting){
